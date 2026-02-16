@@ -6,7 +6,9 @@ The sorting network is data-oblivious: the sequence of comparisons and swaps dep
 
 ## Usage
 
-The library exposes two functions. `sort` is the fast path for native numeric types (integers and floats of any width).
+The module exposes two functions.
+
+`sort` is the fast path for native numeric types (integers and floats of any width).
 
 It uses SIMD vectorization and branchless min/max internally:
 

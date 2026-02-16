@@ -19,7 +19,7 @@ pub const native = struct {
     /// XOR-based transform mapping IEEE 754 bits to a signed-integer-comparable
     /// representation. Self-inverse: applying it twice yields the original value.
     /// Total order: -NaN < -inf < ... < -0.0 < +0.0 < ... < +inf < +NaN.
-    inline fn floatSortKey(comptime T: type, s: std.meta.Int(.signed, @bitSizeOf(T))) std.meta.Int(.signed, @bitSizeOf(T)) {
+    fn floatSortKey(comptime T: type, s: std.meta.Int(.signed, @bitSizeOf(T))) std.meta.Int(.signed, @bitSizeOf(T)) {
         const mask = s >> (@bitSizeOf(T) - 1);
         return s ^ (mask & comptime std.math.maxInt(std.meta.Int(.signed, @bitSizeOf(T))));
     }
@@ -27,7 +27,7 @@ pub const native = struct {
     /// Branchless constant-time compare-and-swap for native numeric types.
     /// On architectures with known constant-time min/max (x86, aarch64),
     /// uses `@min`/`@max` directly. Otherwise falls back to XOR-masked swap.
-    inline fn minmax(comptime T: type, comptime order: Order, a: *T, b: *T) void {
+    fn minmax(comptime T: type, comptime order: Order, a: *T, b: *T) void {
         if (has_ct_minmax) {
             const lo, const hi = if (@typeInfo(T) == .float) blk: {
                 const SInt = std.meta.Int(.signed, @bitSizeOf(T));
@@ -82,7 +82,7 @@ pub const native = struct {
     }
 
     /// Vectorized compare-and-swap using packed SIMD min/max.
-    inline fn vecSortedPair(comptime T: type, comptime order: Order, comptime N: comptime_int, a: @Vector(N, T), b: @Vector(N, T)) struct { @Vector(N, T), @Vector(N, T) } {
+    fn vecSortedPair(comptime T: type, comptime order: Order, comptime N: comptime_int, a: @Vector(N, T), b: @Vector(N, T)) struct { @Vector(N, T), @Vector(N, T) } {
         const lo, const hi = if (@typeInfo(T) == .float) blk: {
             const SInt = std.meta.Int(.signed, @bitSizeOf(T));
             const bits = @bitSizeOf(T);
@@ -101,7 +101,7 @@ pub const native = struct {
         return if (order == .asc) .{ lo, hi } else .{ hi, lo };
     }
 
-    inline fn cascade(comptime T: type, comptime order: Order, items: []T, j: usize, p: usize, q: usize) void {
+    fn cascade(comptime T: type, comptime order: Order, items: []T, j: usize, p: usize, q: usize) void {
         var a: T = items[j + p];
         var r = q;
         while (r > p) : (r = r >> 1) minmax(T, order, &a, &items[j + r]);
@@ -215,7 +215,7 @@ pub const generic = struct {
     /// optimization barrier to prevent LLVM from converting it to a
     /// conditional branch. Processes data in the widest chunks that
     /// fit, cascading down through word sizes for any remainder.
-    inline fn ctCondSwap(comptime T: type, a: *T, b: *T, should_swap: bool) void {
+    fn ctCondSwap(comptime T: type, a: *T, b: *T, should_swap: bool) void {
         const len = @sizeOf(T);
         var mask_word = @as(usize, 0) -% @intFromBool(should_swap);
         mask_word = asm volatile (""
@@ -243,7 +243,7 @@ pub const generic = struct {
     }
 
     /// Generic compare-and-swap using constant-time conditional swap.
-    inline fn minmax(
+    fn minmax(
         comptime T: type,
         context: anytype,
         comptime lessThanFn: fn (context: @TypeOf(context), lhs: T, rhs: T) bool,
@@ -258,7 +258,7 @@ pub const generic = struct {
         }
     }
 
-    inline fn cascade(
+    fn cascade(
         comptime T: type,
         context: anytype,
         comptime lessThanFn: fn (context: @TypeOf(context), lhs: T, rhs: T) bool,

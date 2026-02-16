@@ -1,103 +1,103 @@
 const std = @import("std");
-const djbsort = @import("djbsort.zig");
+const djbsort = @import("root.zig");
 
-const native = djbsort.native;
-const generic = djbsort.generic;
+const sort = djbsort.sort;
+const sortWith = djbsort.sortWith;
 const Order = djbsort.Order;
 
 test "empty array" {
     var x = [_]i64{};
-    native.sort(i64, .asc, &x);
+    sort(i64, .asc, &x);
 }
 
 test "single element" {
     var x = [_]i64{42};
-    native.sort(i64, .asc, &x);
+    sort(i64, .asc, &x);
     try std.testing.expectEqual(42, x[0]);
 }
 
 test "two elements already sorted" {
     var x = [_]i64{ 1, 2 };
-    native.sort(i64, .asc, &x);
+    sort(i64, .asc, &x);
     try std.testing.expectEqualSlices(i64, &.{ 1, 2 }, &x);
 }
 
 test "two elements reversed" {
     var x = [_]i64{ 2, 1 };
-    native.sort(i64, .asc, &x);
+    sort(i64, .asc, &x);
     try std.testing.expectEqualSlices(i64, &.{ 1, 2 }, &x);
 }
 
 test "small sorted" {
     var x = [_]i64{ 1, 2, 3, 4, 5 };
-    native.sort(i64, .asc, &x);
+    sort(i64, .asc, &x);
     try std.testing.expectEqualSlices(i64, &.{ 1, 2, 3, 4, 5 }, &x);
 }
 
 test "small reversed" {
     var x = [_]i64{ 5, 4, 3, 2, 1 };
-    native.sort(i64, .asc, &x);
+    sort(i64, .asc, &x);
     try std.testing.expectEqualSlices(i64, &.{ 1, 2, 3, 4, 5 }, &x);
 }
 
 test "duplicates" {
     var x = [_]i64{ 3, 1, 4, 1, 5, 9, 2, 6, 5, 3 };
-    native.sort(i64, .asc, &x);
+    sort(i64, .asc, &x);
     try std.testing.expectEqualSlices(i64, &.{ 1, 1, 2, 3, 3, 4, 5, 5, 6, 9 }, &x);
 }
 
 test "negative numbers" {
     var x = [_]i64{ -3, -1, -4, -1, -5, -9, -2, -6, -5, -3 };
-    native.sort(i64, .asc, &x);
+    sort(i64, .asc, &x);
     try std.testing.expectEqualSlices(i64, &.{ -9, -6, -5, -5, -4, -3, -3, -2, -1, -1 }, &x);
 }
 
 test "mixed positive and negative" {
     var x = [_]i64{ 3, -1, 4, -1, 5, -9, 2, -6 };
-    native.sort(i64, .asc, &x);
+    sort(i64, .asc, &x);
     try std.testing.expectEqualSlices(i64, &.{ -9, -6, -1, -1, 2, 3, 4, 5 }, &x);
 }
 
 test "all same elements" {
     var x = [_]i64{ 7, 7, 7, 7, 7 };
-    native.sort(i64, .asc, &x);
+    sort(i64, .asc, &x);
     try std.testing.expectEqualSlices(i64, &.{ 7, 7, 7, 7, 7 }, &x);
 }
 
 test "i64 extremes" {
     var x = [_]i64{ std.math.maxInt(i64), std.math.minInt(i64), 0, -1, 1 };
-    native.sort(i64, .asc, &x);
+    sort(i64, .asc, &x);
     try std.testing.expectEqualSlices(i64, &.{ std.math.minInt(i64), -1, 0, 1, std.math.maxInt(i64) }, &x);
 }
 
 test "u8 basic" {
     var x = [_]u8{ 255, 0, 128, 1, 127 };
-    native.sort(u8, .asc, &x);
+    sort(u8, .asc, &x);
     try std.testing.expectEqualSlices(u8, &.{ 0, 1, 127, 128, 255 }, &x);
 }
 
 test "u32 basic" {
     var x = [_]u32{ 1000, 0, 500, std.math.maxInt(u32), 1 };
-    native.sort(u32, .asc, &x);
+    sort(u32, .asc, &x);
     try std.testing.expectEqualSlices(u32, &.{ 0, 1, 500, 1000, std.math.maxInt(u32) }, &x);
 }
 
 test "i16 basic" {
     var x = [_]i16{ 100, -100, 0, std.math.maxInt(i16), std.math.minInt(i16) };
-    native.sort(i16, .asc, &x);
+    sort(i16, .asc, &x);
     try std.testing.expectEqualSlices(i16, &.{ std.math.minInt(i16), -100, 0, 100, std.math.maxInt(i16) }, &x);
 }
 
 test "f64 basic" {
     var x = [_]f64{ 3.14, -2.71, 0.0, 1.0, -1.0 };
-    native.sort(f64, .asc, &x);
+    sort(f64, .asc, &x);
     try std.testing.expectEqualSlices(f64, &.{ -2.71, -1.0, 0.0, 1.0, 3.14 }, &x);
 }
 
 test "f64 special values" {
     const inf = std.math.inf(f64);
     var x = [_]f64{ inf, -inf, 0.0, -0.0, 1.0 };
-    native.sort(f64, .asc, &x);
+    sort(f64, .asc, &x);
     // -inf < -0.0 < +0.0 < 1.0 < inf
     try std.testing.expect(x[0] == -inf);
     try std.testing.expect(x[1] == -0.0 and std.math.isNegativeZero(x[1]));
@@ -108,38 +108,38 @@ test "f64 special values" {
 
 test "f32 basic" {
     var x = [_]f32{ 5.0, -3.0, 0.0, 2.5, -1.5 };
-    native.sort(f32, .asc, &x);
+    sort(f32, .asc, &x);
     try std.testing.expectEqualSlices(f32, &.{ -3.0, -1.5, 0.0, 2.5, 5.0 }, &x);
 }
 
 test "desc: small reversed becomes ascending" {
     var x = [_]i64{ 1, 2, 3, 4, 5 };
-    native.sort(i64, .desc, &x);
+    sort(i64, .desc, &x);
     try std.testing.expectEqualSlices(i64, &.{ 5, 4, 3, 2, 1 }, &x);
 }
 
 test "desc: mixed positive and negative" {
     var x = [_]i64{ 3, -1, 4, -1, 5, -9, 2, -6 };
-    native.sort(i64, .desc, &x);
+    sort(i64, .desc, &x);
     try std.testing.expectEqualSlices(i64, &.{ 5, 4, 3, 2, -1, -1, -6, -9 }, &x);
 }
 
 test "desc: u8 basic" {
     var x = [_]u8{ 255, 0, 128, 1, 127 };
-    native.sort(u8, .desc, &x);
+    sort(u8, .desc, &x);
     try std.testing.expectEqualSlices(u8, &.{ 255, 128, 127, 1, 0 }, &x);
 }
 
 test "desc: f64 basic" {
     var x = [_]f64{ 3.14, -2.71, 0.0, 1.0, -1.0 };
-    native.sort(f64, .desc, &x);
+    sort(f64, .desc, &x);
     try std.testing.expectEqualSlices(f64, &.{ 3.14, 1.0, 0.0, -1.0, -2.71 }, &x);
 }
 
 test "desc: f64 special values" {
     const inf = std.math.inf(f64);
     var x = [_]f64{ inf, -inf, 0.0, -0.0, 1.0 };
-    native.sort(f64, .desc, &x);
+    sort(f64, .desc, &x);
     // inf > 1.0 > +0.0 > -0.0 > -inf
     try std.testing.expect(x[0] == inf);
     try std.testing.expect(x[1] == 1.0);
@@ -168,7 +168,7 @@ fn testNativeAgainstStdSort(comptime T: type, comptime order: Order) !void {
             rp.* = val;
         }
 
-        native.sort(T, order, x);
+        sort(T, order, x);
         const cmp = if (order == .asc) std.sort.asc(T) else std.sort.desc(T);
         std.sort.pdq(T, reference, {}, cmp);
 
@@ -246,7 +246,7 @@ fn testGenericAgainstStdSort(comptime T: type, comptime order: Order) !void {
             rp.* = val;
         }
 
-        generic.sort(T, x, {}, lessThanFn);
+        sortWith(T, x, {}, lessThanFn);
         std.sort.pdq(T, reference, {}, lessThanFn);
 
         try std.testing.expectEqualSlices(T, reference, x);
@@ -311,7 +311,7 @@ test "generic sort: struct by single field" {
         .{ .x = 2, .y = 15 },
     };
 
-    generic.sort(Point, &pts, {}, struct {
+    sortWith(Point, &pts, {}, struct {
         fn lessThan(_: void, a: Point, b: Point) bool {
             return a.x < b.x;
         }
@@ -332,7 +332,7 @@ test "generic sort: struct lexicographic" {
         .{ .x = 3, .y = 0 },
     };
 
-    generic.sort(Point, &pts, {}, struct {
+    sortWith(Point, &pts, {}, struct {
         fn lessThan(_: void, a: Point, b: Point) bool {
             if (a.x != b.x) return a.x < b.x;
             return a.y < b.y;
@@ -356,7 +356,7 @@ test "generic sort: struct descending" {
         .{ .key = 30 },
     };
 
-    generic.sort(Item, &items, {}, struct {
+    sortWith(Item, &items, {}, struct {
         fn lessThan(_: void, a: Item, b: Item) bool {
             return a.key > b.key;
         }
@@ -393,7 +393,7 @@ test "generic sort: struct with context" {
         }
     };
 
-    generic.sort(Entry, &entries, Ctx{ .threshold = 4 }, Ctx.lessThan);
+    sortWith(Entry, &entries, Ctx{ .threshold = 4 }, Ctx.lessThan);
 
     // Below threshold (|v| < 4): -1(1), 0(0), -3(3) sorted by abs → 0, -1, -3
     // At/above threshold: 5(5), 7(7) sorted by abs → 5, 7
@@ -407,14 +407,14 @@ test "generic sort: struct with context" {
 test "generic sort: empty and single element" {
     const S = struct { v: u8 };
     var empty = [_]S{};
-    generic.sort(S, &empty, {}, struct {
+    sortWith(S, &empty, {}, struct {
         fn f(_: void, a: S, b: S) bool {
             return a.v < b.v;
         }
     }.f);
 
     var single = [_]S{.{ .v = 42 }};
-    generic.sort(S, &single, {}, struct {
+    sortWith(S, &single, {}, struct {
         fn f(_: void, a: S, b: S) bool {
             return a.v < b.v;
         }
@@ -443,7 +443,7 @@ test "generic sort: large struct" {
         original_payloads[i] = item.payload;
     }
 
-    generic.sort(Big, &items, {}, struct {
+    sortWith(Big, &items, {}, struct {
         fn lessThan(_: void, a: Big, b: Big) bool {
             return a.key < b.key;
         }

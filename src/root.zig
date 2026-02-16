@@ -1,5 +1,7 @@
 const djbsort = @import("djbsort.zig");
 
+pub const Order = djbsort.Order;
+
 /// Sorts native numeric types using a data-oblivious sorting network with
 /// SIMD-optimized branchless compare-and-swap.
 ///

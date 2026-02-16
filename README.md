@@ -37,4 +37,6 @@ djbsort.sortWith(Point, &points, {}, struct {
 
 ### Float ordering
 
-For floating-point types, `sort` imposes a total order: `-NaN < -inf < ... < -0.0 < +0.0 < ... < +inf < +NaN`. This differs from IEEE 754 where NaN is unordered.
+For floating-point types, `sort` imposes a total order: `-NaN < -inf < ... < -0.0 < +0.0 < ... < +inf < +NaN`.
+
+This differs from IEEE 754 where `NaN` is unordered.

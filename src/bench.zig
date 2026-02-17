@@ -171,7 +171,7 @@ pub fn main(init: std.process.Init) !void {
     try writer.print("\n* djbsort vs pdqsort benchmark *\n", .{});
     try writer.print("Warmup: {d} iters, Bench: {d} iters (median)\n\n", .{ WARMUP_ITERS, BENCH_ITERS });
 
-    const sizes = [_]usize{ 16, 64, 256, 1024, 4096, 16384, 65536 };
+    const sizes = [_]usize{ 16, 64, 256, 1024, 4096, 16384, 65536, 262144, 1048576 };
 
     try writer.print("--- sort (SIMD) ---\n", .{});
     inline for ([_]type{ i64, u64, i32, f64, f32 }) |T| {

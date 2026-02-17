@@ -35,6 +35,16 @@ djbsort.sortWith(Point, &points, {}, struct {
 }.lessThan);
 ```
 
+### Performance
+
+On Apple Silicon, `sort` runs 2x to 4x faster than `std.sort.pdq` on integers across array sizes from 16 to 1 million elements.
+
+Floats are faster up to ~256K elements; at 1M f64 elements the `O(n log^2 n)` scaling starts to show.
+
+`sortWith` (generic, no SIMD) beats `pdq` by 1.2x to 3x on integers up to 65K, then gradually converges at larger sizes.
+
+Run `zig build bench` to reproduce.
+
 ### Float ordering
 
 For floating-point types, `sort` imposes a total order: `-NaN < -inf < ... < -0.0 < +0.0 < ... < +inf < +NaN`.

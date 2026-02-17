@@ -39,15 +39,13 @@ djbsort.sortWith(Point, &points, {}, struct {
 
 Compared to `std.sort.pdq` (ratio < 1 means djbsort is faster):
 
-`sort` (SIMD) is consistently faster across all sizes and types tested.
+`sort` (SIMD) is consistently faster across all sizes and types tested. Floats use the "useint" technique (bulk-transform to sortable integers, sort, transform back) so they run at the same speed as their integer counterparts.
 
-On AMD Zen4 with 64-bit integers, it reaches 5-8x faster for small arrays (n <= 16K) and stays 1.4x faster even at 1M elements.
+On AMD Zen4, `sort` is 4-9x faster for small arrays (n <= 16K) and stays 1.3-1.5x faster at 1M elements. Floats and integers of the same width produce nearly identical timings.
 
-32-bit integers are similar. Floats carry extra overhead from the total-order key transform but still run 2-3x faster at small sizes and hold an edge up to 1M.
+On Apple Silicon, `sort` is 2.5-5x faster for small-to-mid sizes and 1.8-4x faster at 1M elements. The 32-bit types (i32, f32) benefit the most at large sizes due to double the SIMD lane count.
 
-`sortWith` (generic) uses no SIMD but still beats `pdq` up to ~65K elements (2-7x faster for small arrays on integers). Beyond that the `O(n log^2 n)` network scaling catches up, and at 1M elements it's roughly 2x slower than `pdq`. These numbers were measured on AMD Zen4.
-
-On Apple Silicon the margins are similar: `sort` is 2-4x faster on integers across the board, and `sortWith` wins up to ~65K before converging.
+`sortWith` (generic) uses no SIMD but still beats `pdq` up to ~65K elements (2-7x faster for small arrays). Beyond that the `O(n log^2 n)` network scaling catches up, and at 1M elements it's roughly 2x slower than `pdq` on Zen4 (closer to 1.2x on Apple Silicon).
 
 Run `zig build bench` to reproduce.
 

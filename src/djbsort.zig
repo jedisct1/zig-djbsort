@@ -19,25 +19,37 @@ pub const native = struct {
     /// XOR-based transform mapping IEEE 754 bits to a signed-integer-comparable
     /// representation. Self-inverse: applying it twice yields the original value.
     /// Total order: -NaN < -inf < ... < -0.0 < +0.0 < ... < +inf < +NaN.
-    fn floatSortKey(comptime T: type, s: std.meta.Int(.signed, @bitSizeOf(T))) std.meta.Int(.signed, @bitSizeOf(T)) {
-        const mask = s >> (@bitSizeOf(T) - 1);
-        return s ^ (mask & comptime std.math.maxInt(std.meta.Int(.signed, @bitSizeOf(T))));
+    fn floatSortKey(comptime SInt: type, s: SInt) SInt {
+        const mask = s >> (@bitSizeOf(SInt) - 1);
+        return s ^ (mask & comptime std.math.maxInt(SInt));
     }
 
-    /// Branchless constant-time compare-and-swap for native numeric types.
+    /// Applies floatSortKey to every element of a slice. Uses SIMD when available.
+    /// Self-inverse: applying it twice restores the original values.
+    fn applyFloatSortKey(comptime SInt: type, items: []SInt) void {
+        const bits = @bitSizeOf(SInt);
+        const n = items.len;
+        const vec_len = comptime std.simd.suggestVectorLength(SInt) orelse 0;
+        var j: usize = 0;
+        if (vec_len > 0) {
+            const max_val: @Vector(vec_len, SInt) = @splat(std.math.maxInt(SInt));
+            while (j + vec_len <= n) : (j += vec_len) {
+                const v: @Vector(vec_len, SInt) = items[j..][0..vec_len].*;
+                items[j..][0..vec_len].* = v ^ (v >> @splat(bits - 1) & max_val);
+            }
+        }
+        while (j < n) : (j += 1) {
+            items[j] = floatSortKey(SInt, items[j]);
+        }
+    }
+
+    /// Branchless constant-time compare-and-swap for integer types.
     /// On architectures with known constant-time min/max (x86, aarch64),
     /// uses `@min`/`@max` directly. Otherwise falls back to XOR-masked swap.
+    /// Float types never reach here — they are converted to integers by sort().
     fn minmax(comptime T: type, comptime order: Order, a: *T, b: *T) void {
         if (has_ct_minmax) {
-            const lo, const hi = if (@typeInfo(T) == .float) blk: {
-                const SInt = std.meta.Int(.signed, @bitSizeOf(T));
-                const sa = floatSortKey(T, @as(SInt, @bitCast(a.*)));
-                const sb = floatSortKey(T, @as(SInt, @bitCast(b.*)));
-                break :blk .{
-                    @as(T, @bitCast(floatSortKey(T, @min(sa, sb)))),
-                    @as(T, @bitCast(floatSortKey(T, @max(sa, sb)))),
-                };
-            } else .{ @min(a.*, b.*), @max(a.*, b.*) };
+            const lo, const hi = .{ @min(a.*, b.*), @max(a.*, b.*) };
             a.* = if (order == .asc) lo else hi;
             b.* = if (order == .asc) hi else lo;
         } else {
@@ -46,10 +58,8 @@ pub const native = struct {
             // then extract the sign bit to build the XOR mask.
             const bits = @bitSizeOf(T);
             const WInt = std.meta.Int(.signed, bits + 1);
-            const a_int: WInt, const b_int: WInt = if (@typeInfo(T) == .float) .{
-                floatSortKey(T, @as(std.meta.Int(.signed, bits), @bitCast(a.*))),
-                floatSortKey(T, @as(std.meta.Int(.signed, bits), @bitCast(b.*))),
-            } else .{ @intCast(a.*), @intCast(b.*) };
+            const a_int: WInt = @intCast(a.*);
+            const b_int: WInt = @intCast(b.*);
 
             // diff < 0 : the pair is out of order and needs swapping.
             const diff = if (order == .asc) b_int - a_int else a_int - b_int;
@@ -82,22 +92,9 @@ pub const native = struct {
     }
 
     /// Vectorized compare-and-swap using packed SIMD min/max.
+    /// Float types never reach here — they are converted to integers by sort().
     fn vecSortedPair(comptime T: type, comptime order: Order, comptime N: comptime_int, a: @Vector(N, T), b: @Vector(N, T)) struct { @Vector(N, T), @Vector(N, T) } {
-        const lo, const hi = if (@typeInfo(T) == .float) blk: {
-            const SInt = std.meta.Int(.signed, @bitSizeOf(T));
-            const bits = @bitSizeOf(T);
-            const sa: @Vector(N, SInt) = @bitCast(a);
-            const sb: @Vector(N, SInt) = @bitCast(b);
-            const max_val: @Vector(N, SInt) = @splat(std.math.maxInt(SInt));
-            const sorted_a = sa ^ (sa >> @splat(bits - 1) & max_val);
-            const sorted_b = sb ^ (sb >> @splat(bits - 1) & max_val);
-            const lo_s = @min(sorted_a, sorted_b);
-            const hi_s = @max(sorted_a, sorted_b);
-            break :blk .{
-                @as(@Vector(N, T), @bitCast(lo_s ^ (lo_s >> @splat(bits - 1) & max_val))),
-                @as(@Vector(N, T), @bitCast(hi_s ^ (hi_s >> @splat(bits - 1) & max_val))),
-            };
-        } else .{ @min(a, b), @max(a, b) };
+        const lo, const hi = .{ @min(a, b), @max(a, b) };
         return if (order == .asc) .{ lo, hi } else .{ hi, lo };
     }
 
@@ -114,6 +111,18 @@ pub const native = struct {
 
         const n = items.len;
         if (n < 2) return;
+
+        // "useint" technique from djbsort: transform float bits to sortable
+        // integers, sort using the integer path, then transform back.
+        if (@typeInfo(T) == .float) {
+            const SInt = std.meta.Int(.signed, @bitSizeOf(T));
+            const int_items: [*]SInt = @ptrCast(items.ptr);
+            const int_slice = int_items[0..n];
+            applyFloatSortKey(SInt, int_slice);
+            sort(SInt, order, int_slice);
+            applyFloatSortKey(SInt, int_slice);
+            return;
+        }
 
         const vec_len = comptime std.simd.suggestVectorLength(T) orelse 0;
 

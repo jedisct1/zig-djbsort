@@ -1,9 +1,9 @@
 const std = @import("std");
-const djbsort = @import("root.zig");
+const ctsort = @import("root.zig");
 
-const sort = djbsort.sort;
-const sortWith = djbsort.sortWith;
-const Order = djbsort.Order;
+const sort = ctsort.sort;
+const sortWith = ctsort.sortWith;
+const Order = ctsort.Order;
 
 test "empty array" {
     var x = [_]i64{};

@@ -1,19 +1,19 @@
-const djbsort = @import("djbsort.zig");
+const ctsort = @import("ctsort.zig");
 
-pub const Order = djbsort.Order;
+pub const Order = ctsort.Order;
 
 /// Sorts native numeric types using a data-oblivious sorting network with
 /// SIMD-optimized branchless compare-and-swap.
 ///
-/// Based on DJB's sorting network (djbsort). The comparison sequence depends
-/// only on the array length, not on the data, making this suitable for
-/// cryptographic applications where timing side-channels must be avoided.
+/// The comparison sequence depends only on the array length, not on the data,
+/// making this suitable for cryptographic applications where timing
+/// side-channels must be avoided.
 ///
 /// Supports all integer types (signed and unsigned) and floating-point types.
 /// For floats, -0.0 sorts before +0.0 and NaN values sort to the extremes.
 ///
 /// For sorting arbitrary types with a custom comparison function, use `sortWith`.
-pub const sort = djbsort.native.sort;
+pub const sort = ctsort.native.sort;
 
 /// Sorts a slice using a data-oblivious sorting network.
 ///
@@ -27,4 +27,4 @@ pub const sort = djbsort.native.sort;
 ///
 /// For native integer and floating-point types where maximum throughput is
 /// needed, `sort` provides a SIMD-optimized path with identical network topology.
-pub const sortWith = djbsort.generic.sort;
+pub const sortWith = ctsort.generic.sort;

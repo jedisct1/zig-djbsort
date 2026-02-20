@@ -1,6 +1,6 @@
 const std = @import("std");
 const Io = std.Io;
-const djbsort = @import("djbsort");
+const ctsort = @import("ctsort");
 
 const WARMUP_ITERS = 5;
 const BENCH_ITERS = 50;
@@ -37,19 +37,19 @@ fn benchSort(
     const work = try allocator.alloc(T, n);
     defer allocator.free(work);
 
-    var djb_times: [BENCH_ITERS]i96 = undefined;
+    var ct_times: [BENCH_ITERS]i96 = undefined;
     var pdq_times: [BENCH_ITERS]i96 = undefined;
 
     for (0..WARMUP_ITERS) |_| {
         @memcpy(work, original);
-        djbsort.sort(T, .asc, work);
+        ctsort.sort(T, .asc, work);
         std.mem.doNotOptimizeAway(work);
     }
 
-    for (&djb_times) |*t| {
+    for (&ct_times) |*t| {
         @memcpy(work, original);
         const start = Io.Timestamp.now(io, .awake);
-        djbsort.sort(T, .asc, work);
+        ctsort.sort(T, .asc, work);
         std.mem.doNotOptimizeAway(work);
         const end = Io.Timestamp.now(io, .awake);
         t.* = end.nanoseconds - start.nanoseconds;
@@ -71,16 +71,16 @@ fn benchSort(
         t.* = end.nanoseconds - start.nanoseconds;
     }
 
-    const djb_ns = median(&djb_times);
+    const ct_ns = median(&ct_times);
     const pdq_ns = median(&pdq_times);
-    const djb_f: f64 = @floatFromInt(djb_ns);
+    const ct_f: f64 = @floatFromInt(ct_ns);
     const pdq_f: f64 = @floatFromInt(pdq_ns);
-    const ratio = if (pdq_f > 0) djb_f / pdq_f else 0.0;
+    const ratio = if (pdq_f > 0) ct_f / pdq_f else 0.0;
 
-    try writer.print("{s:<6} n={d:<8} djb={d:>10} ns  pdq={d:>10} ns  ratio={d:.2}x\n", .{
+    try writer.print("{s:<6} n={d:<8} ct={d:>10} ns  pdq={d:>10} ns  ratio={d:.2}x\n", .{
         @typeName(T),
         n,
-        @as(i64, @intCast(djb_ns)),
+        @as(i64, @intCast(ct_ns)),
         @as(i64, @intCast(pdq_ns)),
         ratio,
     });
@@ -110,19 +110,19 @@ fn benchSortBy(
 
     const cmp = std.sort.asc(T);
 
-    var djb_times: [BENCH_ITERS]i96 = undefined;
+    var ct_times: [BENCH_ITERS]i96 = undefined;
     var pdq_times: [BENCH_ITERS]i96 = undefined;
 
     for (0..WARMUP_ITERS) |_| {
         @memcpy(work, original);
-        djbsort.sortWith(T, work, {}, cmp);
+        ctsort.sortWith(T, work, {}, cmp);
         std.mem.doNotOptimizeAway(work);
     }
 
-    for (&djb_times) |*t| {
+    for (&ct_times) |*t| {
         @memcpy(work, original);
         const start = Io.Timestamp.now(io, .awake);
-        djbsort.sortWith(T, work, {}, cmp);
+        ctsort.sortWith(T, work, {}, cmp);
         std.mem.doNotOptimizeAway(work);
         const end = Io.Timestamp.now(io, .awake);
         t.* = end.nanoseconds - start.nanoseconds;
@@ -143,16 +143,16 @@ fn benchSortBy(
         t.* = end.nanoseconds - start.nanoseconds;
     }
 
-    const djb_ns = median(&djb_times);
+    const ct_ns = median(&ct_times);
     const pdq_ns = median(&pdq_times);
-    const djb_f: f64 = @floatFromInt(djb_ns);
+    const ct_f: f64 = @floatFromInt(ct_ns);
     const pdq_f: f64 = @floatFromInt(pdq_ns);
-    const ratio = if (pdq_f > 0) djb_f / pdq_f else 0.0;
+    const ratio = if (pdq_f > 0) ct_f / pdq_f else 0.0;
 
-    try writer.print("{s:<6} n={d:<8} djbBy={d:>10} ns  pdq={d:>10} ns  ratio={d:.2}x\n", .{
+    try writer.print("{s:<6} n={d:<8} ctBy={d:>10} ns  pdq={d:>10} ns  ratio={d:.2}x\n", .{
         @typeName(T),
         n,
-        @as(i64, @intCast(djb_ns)),
+        @as(i64, @intCast(ct_ns)),
         @as(i64, @intCast(pdq_ns)),
         ratio,
     });
@@ -168,7 +168,7 @@ pub fn main(init: std.process.Init) !void {
     var stdout_file_writer: Io.File.Writer = .init(.stdout(), io, &stdout_buffer);
     const writer = &stdout_file_writer.interface;
 
-    try writer.print("\n* djbsort vs pdqsort benchmark *\n", .{});
+    try writer.print("\n* ctsort vs pdqsort benchmark *\n", .{});
     try writer.print("Warmup: {d} iters, Bench: {d} iters (median)\n\n", .{ WARMUP_ITERS, BENCH_ITERS });
 
     const sizes = [_]usize{ 16, 64, 256, 1024, 4096, 16384, 65536, 262144, 1048576 };

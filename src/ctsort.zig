@@ -112,7 +112,7 @@ pub const native = struct {
         const n = items.len;
         if (n < 2) return;
 
-        // "useint" technique from djbsort: transform float bits to sortable
+        // "useint" technique: transform float bits to sortable
         // integers, sort using the integer path, then transform back.
         if (@typeInfo(T) == .float) {
             const SInt = std.meta.Int(.signed, @bitSizeOf(T));

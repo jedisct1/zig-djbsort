@@ -1,6 +1,6 @@
 const std = @import("std");
 const Io = std.Io;
-const djbsort = @import("djbsort");
+const ctsort = @import("ctsort");
 
 pub fn main(init: std.process.Init) !void {
     const io = init.io;
@@ -15,7 +15,7 @@ pub fn main(init: std.process.Init) !void {
     for (x) |v| try stdout.print("{d} ", .{v});
     try stdout.print("\n", .{});
 
-    djbsort.sort(i64, .asc, &x);
+    ctsort.sort(i64, .asc, &x);
 
     try stdout.print("after:  ", .{});
     for (x) |v| try stdout.print("{d} ", .{v});
